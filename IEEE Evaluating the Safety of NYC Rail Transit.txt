@@ -1,0 +1,293 @@
+Evaluating the Safety of NYC Rail Transit
+
+Aishwarya Srivastava
+NYU, Courant Institute of Mathematical Science
+New York City, US
+as12588@nyu.edu
+Abstract —
+Analyze the safety of New York City public rail transit by
+investigating the link between crime and rail station proximity.
+Proximity to rail stations was measured by calculating which
+subway station was closest to the crime, as well as how far it was
+from the crime.
+Keywords- Analytics, New York City, Crime, Public Transit,
+Safety
+I. INTRODUCTION
+We analyzed the safety of New York City public rail
+transit by investigating the link between crime incidence and
+rail stations. We determined a crime’s proximity to a rail
+station by using equirectangular approximation; we calculated
+the distance from each crime to each rail station to determine
+which station was the closest to the crime as well as its total
+distance in meters from the crime.
+II. MOTIVATION
+Millions of residents, commuters, and tourists ride the
+NYC subway every day; most individuals have no choice but
+to use the public transit system as car travel and private or
+shared ride options can be cost prohibitive. Understanding the
+safety of the public transit system is critical.
+Commuters and visitors want to travel safely and feel
+secure that they will not become a victim of a crime while
+using public transit. Having data showing that NYC rail
+systems are safe would give riders security. Furthermore,
+such data could be useful to the City of New York to publish
+to help promote tourism and business in the area.
+In the case of specific stations that are not safe, the data
+would be useful to the NYPD. With the knowledge of
+specific stations with higher than average crime incidence,
+they could consider adding additional police presence or using
+other techniques to combat crime.
+III. RELATED WORK
+The first related work we examined prior to beginning our
+project regarded the effect rail station openings had on crime
+in Los Angeles[1]. While our motivation was slightly
+different and concerned the general level of safety of public
+transit, the underlying goal was the same; to examine the
+potential link between public rail transit and crime.
+To investigate this link the authors compared crime
+statistics from the Los Angeles Police Department with rail
+station opening data from the Los Angeles Metro website.
+Additionally, they examined the short-term impact two transit
+labor strikes that were approximately 1 month each had on
+crime to evaluate whether there was any notable short-term
+effect on crime. Because Los Angeles has many areas that are
+not well-connected to the transit system, only areas within 1
+kilometer of a transit station were considered for the study.
+The data was modeled in several rounds and significance tests
+were performed.
+Ultimately the authors found that the data did not prove
+that transit station openings in Los Angeles impacted crime
+using industry-standard statistical significance tests. One
+notable difference between this study and ours, however, was
+that the Los Angeles study was limited to less granular data at
+the Reporting District (RD) level, which are the Los Angeles
+Police Department’s neighborhood area designations. The
+authors themselves noted in their future work section that
+while they could not establish a link between transit stations
+and crime, they were limited by the available data and that
+perhaps more granular crime location data would establish a
+link. For our New York City study, we did have precise crime
+location data in the form of Latitude and Longitude
+coordinates, and we were not investigating differences in
+crime before and after station openings but examining the
+relationship between crimes and subway station proximity.
+The second related paper we examined was Big data
+analytics for security and criminal investigations[2] which
+proposed a framework to manage big data under the context of
+criminal investigation.
+For big data analytics, some modules are common for
+every task of a problem domain. For instance, big data
+extraction, big data transformation, big data integration, big
+data analysis are among the common modules of a big data
+analytics system. On the other hand, data sources, methods,
+and applications are mainly domain-specific. In the proposed
+framework, the authors adopted the R-P (relational-positional)
+model that classifies the activities of criminal investigation
+under two broad perspectives namely, relation and position.
+There were four major steps in the proposed framework. For
+the first step, data are collected from multiple sources, and
+then various big data tools and techniques are applied to
+transform data from a raw format to a suitable format for
+subsequent analysis. For the third step, various analytical
+methods are applied to discover criminal knowledge from the
+pre-processed data. Finally, the automatically discovered
+criminal knowledge (e.g., criminal network) is applied to
+support criminal investigations.
+The conclusion was; as the volume of data is increasing
+continuously, classical techniques may not be efficient enough
+to process all available data in a timely manner. Thus, the
+selection of proper data sources is necessary for managing
+security intelligence. They would need selection of
+appropriate analytical models. For big data analytics, there are
+numerous data analytical methods in which some methods are
+more suitable for certain investigation purposes and datasets.
+Consistent with the HACE theorem, big data also introduce
+some new challenges such as non-uniform data circulation
+and distributed manipulation with a large number of variables
+that cannot be coped with by existing analytical methods.
+Therefore, the project team needs to examine the
+characteristics of different analytical models, and match the
+most appropriate methods with the specific nature of the
+investigation domains. Proper matching between techniques
+and methodologies are required for effective and efficient
+investigative actions. Another issue was tackling the variety of
+data formats from multiple data sources. Owing to various
+structures, quality, granularity, and objectives of
+investigations, data collection and analysis methods tend to be
+different. Accordingly, project teams should continuously
+refine their frameworks, analytics techniques, and tools to
+meet the evolving characteristics of investigations, and the
+emerging formats of criminal data generating from possibly
+new data sources.
+III. DESIGN AND IMPLEMENTATION
+A. Design Details
+We downloaded our datasets from the web and then
+uploaded them into HDFS. We carried out our data profiling
+and cleaning using MapReduce jobs. We then used Impala
+queries on our cleaned datasets to find which station was
+closest to each crime as well as the station’s distance in meters
+from the crime. This generated a lookup table of each crime’s
+ID, the distance in meters from its closest station, and the ID
+of the station which was closest. We used this lookup table to
+create a final merged dataset of crimes and rail stations.
+Finally, we ran additional analytics on this merged dataset
+using Impala.
+B. Description of Datasets
+The public rail transit station data primarily came from
+NYC Open Data, which is a free public data source containing
+data from New York City Agencies. Three related datasets
+were used; Metropolitan Transit Authority (MTA) subway
+stations [3], Port Authority Trans-Hudson (PATH) stations
+[4], and Staten Island Railway stations [5] in New York City.
+In total the three datasets contained a total of 500 stations.
+The data contained fields such as distinct station keys, station
+names, lat/long coordinates of the station, and the line the
+subway was a part of.
+The crime data [6] was also sourced from NYC Open
+Data. This dataset includes all valid felony, misdemeanor, and
+violation and various other crimes reported to the New York
+City Police Department (NYPD) from 2010-present. The
+dataset included 36 distinct features such as ID, borough, date,
+crime description, whether the crime was successfully
+completed vs. attempted, and lat/long coordinates.
+IV. RESULTS
+The crime data contained a “station name” field that
+according to NYC Open Data’s notes on the dataset was
+supposed to designate the name of the transit station for
+crimes that occured at a transit station. In reality however this
+field was unreliable. In most cases this field had a value
+which was unexpected as through sanity checks it was simply
+not possible that the number of fields that contained a station
+value occurred at rail stations. Investigating the values
+themselves the station name often did align with the closest
+subway station that we had determined, but we confirmed
+even in cases where the crime’s lat/long coordinates were far
+from a station, that the station name field could still have a
+value. Furthermore, we saw other types of stations in the data
+such as police stations. Thus we did not do any analysis on
+crime that specifically occurred on subways. So, we focused
+solely on crime incidence proximity to rail stations.
+To determine a crime’s proximity to a subway station, we
+used equirectangular approximation to calculate the distance
+from each crime to each rail station using a SQL cross join
+which generated approximately 3.25 billion records. We then
+used this information to determine which subway station was
+the closest to the crime, as well as the distance in meters the
+crime occured from that station.
+Our initial findings for Staten Island specifically had
+extremely large distances between crime and station. After
+doing some research this made perfect sense; the MTA and
+PATH stations are not connected to Staten Island. We
+resolved this issue by augmenting our dataset with Station
+Island Railway stations and recalculating our crime to station
+distances. While Staten Island still had the largest average
+distance between station and crime of all Boroughs, this
+reduced the distances by about 75% and gave us much more
+reasonable metrics for Staten Island.
+We found that crimes are slightly less likely to be
+successfully completed (vs. attempted) very close to a transit
+station (~1 block) compared to further distances (1+ avenues).
+This result was not surprising. Transit stations are busy hubs
+used by millions of people each day, and attempted crime in
+such areas is more likely to be thwarted by bystanders. The
+difference in completed crime percentages close to a subway
+vs. further away was extremely small, but did exist. Overall
+completed crimes made up 97%+ of our dataset, and there
+were not many recorded incidents of attempted crimes that
+were not successfully completed. We suspected the actual
+number was higher, but that in many cases perhaps individuals
+did not bother to report the incident with the NYPD.
+We found that some types of crimes were more likely than
+others to occur closer to a transit station than others. Theft of
+services (stealing services such as those offered by a
+restaurant, club, taxi, subway), Fraudulent Accosting (intent to
+defraud of money or property by means of a trick, swindle or
+confidence game), and Alcoholic Beverage Control Law
+(attempting to sell alcoholic beverages without a license) [7]
+were the top 3 offenses occurring closest to transit stations
+across Boroughs.
+Finally, we saw that Boroughs varied in the percentage of
+crimes that occurred very close to a transit station. Over 50%
+of Manhattan crimes occurred within 1 avenue of a transit
+station (Brooklyn 26%, Bronx 25%, Queens 16%, Staten
+Island 6%).
+We reasoned that this result was likely due to the fact that
+some Boroughs such as Manhattan are better connected via
+rail stations and simply have more stations than others such as
+Staten Island.
+V. FUTURE WORK
+In the future if the station name field in the crime data
+could be properly cleaned, or if another dataset containing
+data on crimes that occured on trains or at rail stations could
+be obtained, we could generate more informative insights on
+the safety of NYC rail transit by comparing rail crime to
+overall crime incidence.
+To measure the distance of a crime to the closest subway
+station we used the shortest straight-line calculation from the
+crime to the station. In reality, however, in an urban
+environment the shortest line distance to a destination is not
+possible to take due to the presence of buildings and other
+obstacles, the actual walking distance from a given latitude
+and longitude coordinate to the closest subway will be larger.
+A more accurate way to measure distance from a crime to a
+subway station would be to use the shortest distance to walk
+via viable pedestrian paths, such as the recommended walking
+paths presented by Google Maps.
+The methodology we used to determine the distance of
+each crime from its closest transit station has significant
+applicability for other works outside of public safety analytics.
+Given a specific latitude longitude coordinate, our code could
+be used to find the closest restaurant, park, police station, or
+any other location-based destination. For performance
+reasons our analytic used equirectangular approximation to
+calculate distance which is suitable for short distances, but is
+more inaccurate for larger distances. In the case of a related
+work analyzing larger distances, a switch to the more
+computationally-intensive Haversine formula may be
+advisable.
+VI. CONCLUSION
+While we were able to generate insights on the average
+distance each crime occurred from a transit station, the
+relationship between the two isn’t necessarily causal. Some
+Boroughs could have more crime occurring near transit
+stations simply because they have more of them.
+Our finding that crimes were less likely to be completed
+(vs. attempted) very close to a subway station does suggest
+that there is indeed a link between crime and subway station
+proximity. In future work it may be advisable to find a way to
+analyze crimes occurring on trains or at railway stations to
+compare the percent of crimes at these locations compared to
+overall crime, and compare to the distance insights we
+generated.
+VII. ACKNOWLEDGMENT
+We are grateful to Professor Suzanne McIntosh for her
+extended support and for providing us with an opportunity to
+work on this project.
+VIII. REFERENCES
+1. Greg Ridgeway and John M. MacDonald. Effect of Rail
+Transit on Crime: A Study of Los Angeles from 1988 to
+2014. Springer Science+Business Media New York 2016.
+20 April 2016.
+2. M.I. Pramanik Raymond Y.K. Lau Wei T. Yue Yunming
+Ye Chunping Li Big data analytics for security and
+criminalinvestigations
+https://onlinelibrary.wiley.com/doi/full/10.1002/widm.12
+08
+3. NYC OpenData: Subway Stations. 2019 The City of New
+York.
+https://data.cityofnewyork.us/Transportation/Subway-Stat
+ions/arq3-7z49
+4. NYC OpenData: Path Station Locations. 2019 The City
+of New York.
+https://data.cityofnewyork.us/City-Government/Path-Stati
+on-Locations/acxp-7ep7
+5. Wikipedia, The Free Encyclopedia: List of Staten Island
+Railway stations.
+https://en.wikipedia.org/w/index.php?title=List_of_Staten
+_Island_Railway_stations&oldid=865097069
+6. NYC OpenData: NYPD Complaint Data Historic. 2019
+The City of New York.
+https://data.cityofnewyork.us/Public-Safety/NYPD-Comp
+laint-Data-Historic/qgea-i56i
+7. New York State Senate: Penal Code.
+https://www.nysenate.gov/legislation/laws/PEN
