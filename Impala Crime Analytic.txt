@@ -1,0 +1,183 @@
+create external table station (OBJECTID int, NAME string, LONGITUDE float, LATITUDE float, line string)
+row format delimited fields terminated by ','
+location '/user/ctd299/subwaydata/';
+
+create external table crime_station_lookup (CMPLNT_NUM int, OBJECTID int, min_dist float)
+row format delimited fields terminated by ','
+location '/user/ctd299/crime_subway_distances_historic_withpath.csv/';
+
+create external table crime
+(CMPLNT_NUM int, year int, OFNS_DESC string,PD_DESC string,CRM_ATPT_CPTD_CD string,LAW_CAT_CD string,BORO_NM string,STATION_NAME string)
+row format delimited fields terminated by ','
+location '/user/ctd299/crime_nocommas.csv/';
+
+CREATE VIEW crime_final AS
+select * from
+(select crime.*, min_dist, crime_station_lookup.OBJECTID, NAME, LINE 
+FROM crime_station_lookup INNER JOIN crime ON crime.cmplnt_num=crime_station_lookup.cmplnt_num INNER JOIN station 
+ON crime_station_lookup.OBJECTID=station.OBJECTID) x
+WHERE min_dist is not null and cmplnt_num is not null and objectid is not null;
+
+SELECT law_cat_cd, avg(min_dist) avg_dist, count(*) COUNT FROM crime_final WHERE year='2018'
+GROUP BY law_cat_cd;
++-------------+-------------------+
+| law_cat_cd  | avg_dist          |
++-------------+-------------------+
+| VIOLATION   | 1218.032105629658 |
+| FELONY      | 936.2657520932962 |
+| MISDEMEANOR | 996.8390579096002 |
++-------------+-------------------+
+
+SELECT boro_nm, law_cat_cd, avg(min_dist) avg_dist FROM crime_final WHERE year='2018'
+AND boro_nm!='""' GROUP BY law_cat_cd, boro_nm ORDER BY boro_nm, law_cat_cd;
++---------------+-------------+-------------------+
+| boro_nm       | law_cat_cd  | avg_dist          |
++---------------+-------------+-------------------+
+| BRONX         | FELONY      | 541.2171876110011 |
+| BRONX         | MISDEMEANOR | 541.7503280602868 |
+| BRONX         | VIOLATION   | 566.3246559429543 |
+| BROOKLYN      | FELONY      | 506.9943962984788 |
+| BROOKLYN      | MISDEMEANOR | 516.4567558611008 |
+| BROOKLYN      | VIOLATION   | 524.2687402922343 |
+| MANHATTAN     | FELONY      | 263.6237853725413 |
+| MANHATTAN     | MISDEMEANOR | 264.0033158560753 |
+| MANHATTAN     | VIOLATION   | 287.3301658431165 |
+| QUEENS        | FELONY      | 1491.547854159071 |
+| QUEENS        | MISDEMEANOR | 1298.798417547626 |
+| QUEENS        | VIOLATION   | 1504.935934433586 |
+| STATEN ISLAND | FELONY      | 8851.98130765412  |
+| STATEN ISLAND | MISDEMEANOR | 9159.61177991443  |
+| STATEN ISLAND | VIOLATION   | 8801.706132121659 |
++---------------+-------------+-------------------+
+
+select boro_nm, avg(min_dist) avg_dist FROM crime_final WHERE boro_nm!='""' AND year=2018 
+GROUP BY boro_nm ORDER BY avg_dist ASC;
++---------------+-------------------+
+| boro_nm       | avg_dist          |
++---------------+-------------------+
+| MANHATTAN     | 273.5118743230981 |
+| BROOKLYN      | 526.1677174055061 |
+| BRONX         | 566.0181034718723 |
+| QUEENS        | 1429.947103623152 |
+| STATEN ISLAND | 9200.503385551548 |
++---------------+-------------------+
+
+SELECT year, law_cat_cd, avg(min_dist) avg_distances, count(*) COUNT FROM crime_final
+WHERE year>=2006
+GROUP BY year, law_cat_cd ORDER BY year ASC, law_cat_cd DESC;
++------+-------------+-------------------+--------+
+| year | law_cat_cd  | avg_distances     | count  |
++------+-------------+-------------------+--------+
+| 2006 | VIOLATION   | 1344.54585100405  | 67299  |
+| 2006 | MISDEMEANOR | 1141.82796783916  | 279248 |
+| 2006 | FELONY      | 955.3857980144454 | 166075 |
+| 2007 | VIOLATION   | 1395.063709843897 | 66080  |
+| 2007 | MISDEMEANOR | 1125.491875587767 | 302195 |
+| 2007 | FELONY      | 1101.020192860002 | 166819 |
+| 2008 | VIOLATION   | 1359.818145632511 | 62081  |
+| 2008 | MISDEMEANOR | 1115.246046423668 | 302584 |
+| 2008 | FELONY      | 962.8627617793189 | 164050 |
+| 2009 | VIOLATION   | 1343.434428562674 | 59876  |
+| 2009 | MISDEMEANOR | 1066.268172608051 | 301347 |
+| 2009 | FELONY      | 944.8892862514011 | 149821 |
+| 2010 | VIOLATION   | 1406.849740983408 | 58621  |
+| 2010 | MISDEMEANOR | 1079.494813509753 | 303727 |
+| 2010 | FELONY      | 984.9331707947653 | 147722 |
+| 2011 | VIOLATION   | 1319.280438934329 | 55440  |
+| 2011 | MISDEMEANOR | 1038.114224431313 | 294823 |
+| 2011 | FELONY      | 1003.206665965192 | 148325 |
+| 2012 | VIOLATION   | 1287.584759766559 | 58210  |
+| 2012 | MISDEMEANOR | 1026.056496787559 | 292406 |
+| 2012 | FELONY      | 971.2066192203982 | 154036 |
+| 2013 | VIOLATION   | 1256.673518023891 | 58795  |
+| 2013 | MISDEMEANOR | 1019.855447796505 | 282707 |
+| 2013 | FELONY      | 973.7459129276165 | 154203 |
+| 2014 | VIOLATION   | 1262.482387357053 | 63015  |
+| 2014 | MISDEMEANOR | 1032.238755692251 | 277246 |
+| 2014 | FELONY      | 975.646903767754  | 151582 |
+| 2015 | VIOLATION   | 1251.265511291031 | 63282  |
+| 2015 | MISDEMEANOR | 1034.209835193774 | 264286 |
+| 2015 | FELONY      | 976.9657912347461 | 150765 |
+| 2016 | VIOLATION   | 1237.646862553637 | 66879  |
+| 2016 | MISDEMEANOR | 1025.264191815535 | 261348 |
+| 2016 | FELONY      | 968.1693273930584 | 149372 |
+| 2017 | VIOLATION   | 1251.376020010457 | 67220  |
+| 2017 | MISDEMEANOR | 1014.007140044248 | 257755 |
+| 2017 | FELONY      | 952.4396175832708 | 141689 |
+| 2018 | VIOLATION   | 1218.032104665544 | 70009  |
+| 2018 | MISDEMEANOR | 996.8390571953731 | 246942 |
+| 2018 | FELONY      | 936.2657515739891 | 136007 |
++------+-------------+-------------------+--------+
+
+SELECT year, boro_nm, avg(min_dist) avg_distances, count(*) COUNT FROM crime_final
+WHERE year>=2006 AND boro_nm!='""'
+GROUP BY year, boro_nm ORDER BY year ASC, boro_nm ASC;
++------+---------------+-------------------+--------+
+| year | boro_nm       | avg_distances     | count  |
++------+---------------+-------------------+--------+
+| 2006 | BRONX         | 556.1121968242796 | 107744 |
+| 2006 | BROOKLYN      | 534.2260053804008 | 152527 |
+| 2006 | MANHATTAN     | 264.9394060943982 | 123695 |
+| 2006 | QUEENS        | 1440.670329458783 | 101902 |
+| 2006 | STATEN ISLAND | 9398.901056496803 | 26235  |
+| 2007 | BRONX         | 617.7793909825499 | 116876 |
+| 2007 | BROOKLYN      | 590.3287039347221 | 155317 |
+| 2007 | MANHATTAN     | 338.4412973310708 | 130224 |
+| 2007 | QUEENS        | 1537.433358946217 | 105516 |
+| 2007 | STATEN ISLAND | 9368.888026752187 | 26070  |
+| 2008 | BRONX         | 546.6351767947306 | 113846 |
+| 2008 | BROOKLYN      | 523.3619964343516 | 155321 |
+| 2008 | MANHATTAN     | 265.4337385531841 | 128061 |
+| 2008 | QUEENS        | 1441.047469745462 | 102759 |
+| 2008 | STATEN ISLAND | 9414.195191671703 | 26807  |
+| 2009 | BRONX         | 548.6272282155588 | 112610 |
+| 2009 | BROOKLYN      | 523.558471114055  | 150162 |
+| 2009 | MANHATTAN     | 265.2654560269646 | 124525 |
+| 2009 | QUEENS        | 1455.228351359827 | 98655  |
+| 2009 | STATEN ISLAND | 9341.26869165801  | 24127  |
+| 2010 | BRONX         | 627.2608197226992 | 111680 |
+| 2010 | BROOKLYN      | 516.3267168650682 | 151534 |
+| 2010 | MANHATTAN     | 280.5426550069096 | 121326 |
+| 2010 | QUEENS        | 1488.758886679899 | 98899  |
+| 2010 | STATEN ISLAND | 9217.688617099337 | 24046  |
+| 2011 | BRONX         | 550.2295134037535 | 108714 |
+| 2011 | BROOKLYN      | 517.8205542002514 | 151720 |
+| 2011 | MANHATTAN     | 265.4690148317409 | 115862 |
+| 2011 | QUEENS        | 1417.264542459719 | 98492  |
+| 2011 | STATEN ISLAND | 9199.891089086957 | 23301  |
+| 2012 | BRONX         | 552.1844573455299 | 106880 |
+| 2012 | BROOKLYN      | 513.443911661658  | 154691 |
+| 2012 | MANHATTAN     | 265.2531688478494 | 120052 |
+| 2012 | QUEENS        | 1410.906946000837 | 98986  |
+| 2012 | STATEN ISLAND | 9058.794163335071 | 23619  |
+| 2013 | BRONX         | 555.4500614203731 | 104119 |
+| 2013 | BROOKLYN      | 512.6362773822456 | 149624 |
+| 2013 | MANHATTAN     | 266.0964834403895 | 118037 |
+| 2013 | QUEENS        | 1391.169278464002 | 100895 |
+| 2013 | STATEN ISLAND | 9066.077205969703 | 22699  |
+| 2014 | BRONX         | 555.2953969415884 | 106233 |
+| 2014 | BROOKLYN      | 515.7803915938167 | 148744 |
+| 2014 | MANHATTAN     | 269.3623208803936 | 113536 |
+| 2014 | QUEENS        | 1377.788604959773 | 100222 |
+| 2014 | STATEN ISLAND | 9174.552890000276 | 22771  |
+| 2015 | BRONX         | 564.5902728550836 | 105011 |
+| 2015 | BROOKLYN      | 524.1967421869801 | 142861 |
+| 2015 | MANHATTAN     | 265.7621380970664 | 113134 |
+| 2015 | QUEENS        | 1409.198768316209 | 94811  |
+| 2015 | STATEN ISLAND | 9095.85617649346  | 22165  |
+| 2016 | BRONX         | 568.0742089526848 | 105582 |
+| 2016 | BROOKLYN      | 529.2097908202077 | 140337 |
+| 2016 | MANHATTAN     | 267.6880670515752 | 115517 |
+| 2016 | QUEENS        | 1414.778995012259 | 94087  |
+| 2016 | STATEN ISLAND | 9045.577264248768 | 21741  |
+| 2017 | BRONX         | 562.089950114049  | 102902 |
+| 2017 | BROOKLYN      | 520.3824346755308 | 137086 |
+| 2017 | MANHATTAN     | 267.8524948123257 | 113989 |
+| 2017 | QUEENS        | 1394.31314984911  | 91167  |
+| 2017 | STATEN ISLAND | 9099.291436818436 | 21242  |
+| 2018 | BRONX         | 545.6176121064855 | 98858  |
+| 2018 | BROOKLYN      | 514.6615780308935 | 133694 |
+| 2018 | MANHATTAN     | 266.8624529089753 | 111786 |
+| 2018 | QUEENS        | 1393.061252064847 | 87984  |
+| 2018 | STATEN ISLAND | 9010.68718202222  | 20353  |
++------+---------------+-------------------+--------+

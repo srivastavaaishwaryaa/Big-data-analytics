@@ -1,0 +1,42 @@
+hfs -mkdir subwaydata
+hfs -put DOITT_SUBWAY_STATION_01_13SEPT2010.csv subwaydata
+hfs -mkdir crimedata
+hfs -put hfs -put cleaned_crime.csv crimedata
+
+impala-shell
+connect compute-1-1;
+use ctd299;
+
+create external table station (OBJECTID int, NAME string, LONGITUDE float, LATITUDE float, line string)
+row format delimited fields terminated by ','
+location '/user/ctd299/subwaydata/';
+
+create external table crime (CMPLNT_NUM int, CMPLNT_FR_DT string, CMPLNT_FR_TM string, CMPLNT_TO_DT string, CMPLNT_TO_TM string, ADDR_PCT_CD int, RPT_DT string, KY_CD int, OFNS_DESC string, PD_CD int, PD_DESC string, CRM_ATPT_CPTD_CD string, LAW_CAT_CD string, BORO_NM string, LOC_OF_OCCUR_DESC string, PREM_TYP_DESC string, JURIS_DESC string, JURISDICTION_CODE int, PARKS_NM string, HADEVELOPT string, HOUSING_PSA string, X_COORD_CD int, Y_COORD_CD int, SUSP_AGE_GROUP string, SUSP_RACE string, SUSP_SEX string, TRANSIT_DISTRICT string, LATITUDE double, LONGITUDE double, LAT_LON string, PATROL_BORO string, STATION_NAME string, VIC_AGE_GROUP string, VIC_RACE string, VIC_SEX string)
+row format delimited fields terminated by ','
+location '/user/ctd299/crimedata/';
+
+CREATE EXTERNAL TABLE cleaned AS
+SELECT crime.CMPLNT_NUM, crime.Latitude crime_lat, crime.Longitude crime_long, station.OBJECTID, station.NAME, 
+station.LATITUDE station_lat, station.LONGITUDE station_long, 
+(RADIANS(crime.Longitude)-RADIANS(station.Longitude))*COS((RADIANS(crime.Latitude)+RADIANS(station.Latitude))*.5) x,
+RADIANS(crime.Latitude)-RADIANS(station.Latitude) y
+FROM crime CROSS JOIN station
+WHERE crime.Latitude is not null AND crime.Longitude is not null AND station.LATITUDE is not null AND station.LONGITUDE is not null;
+
+CREATE EXTERNAL TABLE cleaned_2 AS
+SELECT * FROM cleaned where x is not null AND y is not null;
+
+select count(*) from cleaned_2;
+
+CREATE EXTERNAL TABLE distances AS
+SELECT CMPLNT_NUM, crime_lat, crime_long, OBJECTID, name, station_lat, station_long, 
+SQRT(POWER(x,2)+POWER(y,2))*6371*1000 meter_distance FROM cleaned_2
+WHERE crime_lat is not null AND crime_long is not null;
+
+CREATE EXTERNAL TABLE min_distances AS 
+SELECT CMPLNT_NUM, MIN(meter_distance) min_dist FROM distances GROUP BY CMPLNT_NUM;
+
+CREATE EXTERNAL TABLE final_lookup AS
+SELECT distances.CMPLNT_NUM, OBJECTID, min_distances.min_dist 
+FROM distances JOIN min_distances ON distances.CMPLNT_NUM=min_distances.CMPLNT_NUM AND 
+distances.meter_distance=min_distances.min_dist;
